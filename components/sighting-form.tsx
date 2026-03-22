@@ -18,21 +18,37 @@ type Membership = {
   competition_id: string;
 };
 
+type Teammate = {
+  user_id: string;
+  display_name: string;
+};
+
 function toLocalDatetimeValue(date: Date) {
   const tzOffset = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - tzOffset).toISOString().slice(0, 16);
 }
 
-export function SightingForm({ membership, userId }: { membership: Membership | null; userId: string }) {
+export function SightingForm({
+  membership,
+  userId,
+  teammates = [],
+}: {
+  membership: Membership | null;
+  userId: string;
+  teammates?: Teammate[];
+}) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<Species[]>([]);
   const [selectedSpecies, setSelectedSpecies] = useState<Species | null>(null);
+  const [sightedFor, setSightedFor] = useState(userId);
   const [seenAt, setSeenAt] = useState(toLocalDatetimeValue(new Date()));
   const [lat, setLat] = useState('');
   const [lon, setLon] = useState('');
   const [locationLabel, setLocationLabel] = useState('');
   const [notes, setNotes] = useState('');
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [submitting, setSubmitting] = useState(false);
   const supabase = useMemo(() => createClient(), []);
 
   const searchSpecies = async (value: string) => {
@@ -58,6 +74,7 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
       setMessage('Geolocation is not supported in this browser.');
+      setMessageType('error');
       return;
     }
 
@@ -68,30 +85,48 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
       },
       () => {
         setMessage('Could not fetch location. You can type it manually.');
+        setMessageType('error');
       }
     );
+  };
+
+  const resetForm = () => {
+    setQuery('');
+    setSuggestions([]);
+    setSelectedSpecies(null);
+    setSightedFor(userId);
+    setSeenAt(toLocalDatetimeValue(new Date()));
+    setLat('');
+    setLon('');
+    setLocationLabel('');
+    setNotes('');
   };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage('');
+    setMessageType('');
 
     if (!membership) {
       setMessage('No active team membership found for an active competition.');
+      setMessageType('error');
       return;
     }
 
     if (!selectedSpecies) {
       setMessage('Please choose a species from suggestions.');
+      setMessageType('error');
       return;
     }
+
+    setSubmitting(true);
 
     const payload = {
       competition_id: membership.competition_id,
       team_id: membership.team_id,
       species_id: selectedSpecies.id,
       entered_by_user_id: userId,
-      sighted_for_user_id: userId,
+      sighted_for_user_id: sightedFor,
       seen_at: new Date(seenAt).toISOString(),
       latitude: lat ? Number(lat) : null,
       longitude: lon ? Number(lon) : null,
@@ -101,13 +136,27 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
 
     const { error } = await supabase.from('sightings').insert(payload);
 
+    setSubmitting(false);
+
     if (error) {
-      setMessage(`Save failed: ${error.message}`);
+      // Parse DB trigger errors for friendlier messages
+      const msg = error.message;
+      if (msg.includes('not registered in competition')) {
+        setMessage('Your team is not registered in the active competition.');
+      } else if (msg.includes('not a member')) {
+        setMessage('The selected user is not a member of your team in this competition.');
+      } else if (msg.includes('outside the competition')) {
+        setMessage('The sighting date is outside the competition date range.');
+      } else {
+        setMessage(`Save failed: ${msg}`);
+      }
+      setMessageType('error');
       return;
     }
 
-    setMessage('Sighting saved successfully. Leaderboards should update immediately.');
-    setNotes('');
+    setMessage('Sighting saved! Leaderboards will update immediately.');
+    setMessageType('success');
+    resetForm();
   };
 
   return (
@@ -116,7 +165,7 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
 
       <div>
         <label className="label">Species</label>
-        <input className="input" value={query} onChange={(e) => searchSpecies(e.target.value)} placeholder="Type species name" />
+        <input className="input" value={query} onChange={(e) => searchSpecies(e.target.value)} placeholder="Type species name" autoFocus />
         {suggestions.length > 0 && (
           <div className="card" style={{ marginTop: 8, padding: 0 }}>
             {suggestions.map((s) => (
@@ -146,6 +195,19 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
           ) : (
             <div className="small" style={{ marginTop: 8 }}>No image available.</div>
           )}
+        </div>
+      )}
+
+      {teammates.length > 1 && (
+        <div>
+          <label className="label">Sighted by</label>
+          <select className="input" value={sightedFor} onChange={(e) => setSightedFor(e.target.value)}>
+            {teammates.map((t) => (
+              <option key={t.user_id} value={t.user_id}>
+                {t.display_name}{t.user_id === userId ? ' (you)' : ''}
+              </option>
+            ))}
+          </select>
         </div>
       )}
 
@@ -180,10 +242,16 @@ export function SightingForm({ membership, userId }: { membership: Membership | 
         <textarea className="input" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} />
       </div>
 
-      {message && <div className="small">{message}</div>}
+      {message && (
+        <div className={`message ${messageType === 'success' ? 'message-success' : 'message-error'}`}>
+          {message}
+        </div>
+      )}
 
       <div className="sticky-save">
-        <button className="btn btn-primary" type="submit">Save sighting</button>
+        <button className="btn btn-primary" type="submit" disabled={submitting}>
+          {submitting ? 'Saving...' : 'Save sighting'}
+        </button>
       </div>
     </form>
   );

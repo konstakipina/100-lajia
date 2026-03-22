@@ -15,5 +15,34 @@ export default async function NewSightingPage() {
     .limit(1)
     .maybeSingle();
 
-  return <SightingForm membership={membership ? { team_id: membership.team_id, competition_id: membership.competition_id } : null} userId={user!.id} />;
+  // Fetch teammates for "log for teammate" selector
+  let teammates: { user_id: string; display_name: string }[] = [];
+  if (membership) {
+    const { data: members } = await supabase
+      .from('team_members')
+      .select('user_id')
+      .eq('team_id', membership.team_id)
+      .eq('competition_id', membership.competition_id);
+
+    const memberIds = (members ?? []).map((m) => m.user_id);
+    if (memberIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, display_name')
+        .in('id', memberIds);
+
+      teammates = (profiles ?? []).map((p) => ({
+        user_id: p.id,
+        display_name: p.display_name,
+      }));
+    }
+  }
+
+  return (
+    <SightingForm
+      membership={membership ? { team_id: membership.team_id, competition_id: membership.competition_id } : null}
+      userId={user!.id}
+      teammates={teammates}
+    />
+  );
 }
