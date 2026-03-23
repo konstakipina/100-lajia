@@ -1,9 +1,10 @@
 import Link from 'next/link';
+import { getDemoUser } from '@/lib/demo-auth';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function DashboardPage() {
+  const user = getDemoUser();
   const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
   const { data: competitions } = await supabase
     .from('competitions')
@@ -13,7 +14,6 @@ export default async function DashboardPage() {
 
   const comp = competitions?.[0];
 
-  // Fetch user's team for active competition
   let teamName: string | null = null;
   let userSpeciesCount = 0;
   let teamSpeciesCount = 0;
@@ -30,7 +30,6 @@ export default async function DashboardPage() {
     if (membership) {
       teamName = ((membership.teams as unknown) as Record<string, unknown>)?.name as string ?? null;
 
-      // Fetch individual score
       const { data: indScore } = await supabase
         .from('v_individual_scores')
         .select('unique_species_count')
@@ -40,7 +39,6 @@ export default async function DashboardPage() {
 
       userSpeciesCount = indScore?.unique_species_count ?? 0;
 
-      // Fetch team score
       const { data: teamScore } = await supabase
         .from('v_team_scores')
         .select('unique_species_count')
@@ -56,6 +54,7 @@ export default async function DashboardPage() {
     <div>
       <div className="card">
         <h1>{comp ? `${comp.name} ${comp.year}` : 'Competition dashboard'}</h1>
+        {user && <p className="small">Signed in as <strong>{user.display_name}</strong></p>}
         {teamName && (
           <p>
             Team: <strong>{teamName}</strong>

@@ -1,11 +1,10 @@
 import { SightingForm } from '@/components/sighting-form';
+import { getDemoUser } from '@/lib/demo-auth';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function NewSightingPage() {
+  const user = getDemoUser();
   const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
 
   const { data: membership } = await supabase
     .from('team_members')
@@ -15,7 +14,6 @@ export default async function NewSightingPage() {
     .limit(1)
     .maybeSingle();
 
-  // Fetch teammates for "log for teammate" selector
   let teammates: { user_id: string; display_name: string }[] = [];
   if (membership) {
     const { data: members } = await supabase

@@ -1,17 +1,13 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
-import { upsertProfile } from '@/lib/auth/upsert-profile';
+import { getDemoUser } from '@/lib/demo-auth';
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
-  const { data } = await supabase.auth.getUser();
+  const user = getDemoUser();
 
-  if (!data.user) {
+  if (!user) {
     redirect('/login');
   }
-
-  await upsertProfile(data.user);
 
   return (
     <main className="container">
