@@ -1,11 +1,11 @@
 import { TopBar } from '@/components/top-bar';
 import { FieldLogForm } from '@/components/field-log-form';
 import { getDemoUser } from '@/lib/demo-auth';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 export default async function FieldLogPage() {
   const user = getDemoUser()!;
-  const supabase = createClient();
+  const supabase = createServiceClient();
 
   const { data: competitions } = await supabase
     .from('competitions')
@@ -58,7 +58,7 @@ export default async function FieldLogPage() {
 
   return (
     <>
-      <TopBar title="Field log" eyebrow={eyebrow} meta={meta} />
+      <TopBar title="Havaintokirja" eyebrow={eyebrow} meta={meta} />
       <FieldLogForm membership={membership} userId={user.id} teammates={teammates} />
     </>
   );

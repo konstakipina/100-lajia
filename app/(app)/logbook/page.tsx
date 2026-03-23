@@ -1,6 +1,5 @@
-import Image from 'next/image';
 import { TopBar } from '@/components/top-bar';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 type Sighting = {
   id: string;
@@ -19,7 +18,7 @@ type Sighting = {
 };
 
 export default async function LogbookPage() {
-  const supabase = createClient();
+  const supabase = createServiceClient();
 
   const { data: competitions } = await supabase
     .from('competitions')
@@ -49,11 +48,6 @@ export default async function LogbookPage() {
 
   const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
 
-  const formatDate = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleDateString('fi-FI', { weekday: 'short', day: 'numeric', month: 'numeric' });
-  };
-
   const formatTime = (iso: string) => {
     const d = new Date(iso);
     return d.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
@@ -74,14 +68,14 @@ export default async function LogbookPage() {
   return (
     <>
       <TopBar
-        title="Logbook"
+        title="Päiväkirja"
         eyebrow={comp ? `100 lajia · ${comp.year}` : '100 lajia'}
-        meta={sightings.length > 0 ? `${sightings.length} sightings` : undefined}
+        meta={sightings.length > 0 ? `${sightings.length} havaintoa` : undefined}
       />
       <div style={{ padding: '0 18px' }}>
         {sightings.length === 0 && (
           <div style={{ padding: '24px 0', textAlign: 'center' }}>
-            <span className="text-value" style={{ color: 'var(--ink-light)' }}>No sightings yet.</span>
+            <span className="text-value" style={{ color: 'var(--ink-light)' }}>Ei havaintoja vielä.</span>
           </div>
         )}
 
@@ -100,7 +94,7 @@ export default async function LogbookPage() {
                   </div>
                   <div className="feed-scientific">{s.scientific_name}</div>
                   <div className="feed-meta">
-                    {nameById.get(s.sighted_for_user_id) ?? 'Unknown'} · {s.team_name} · {formatTime(s.seen_at)}
+                    {nameById.get(s.sighted_for_user_id) ?? 'Tuntematon'} · {s.team_name} · {formatTime(s.seen_at)}
                     {s.location_label && ` · ${s.location_label}`}
                   </div>
                 </div>

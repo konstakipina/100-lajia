@@ -4,9 +4,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
-  { href: '/', label: 'Field log', sublabel: 'Record a sighting' },
-  { href: '/logbook', label: 'Logbook', sublabel: 'Recent sightings' },
-  { href: '/standings', label: 'Standings', sublabel: 'Teams & individuals' },
+  { href: '/', label: 'Havaintokirja', sublabel: 'Kirjaa havainto' },
+  { href: '/logbook', label: 'Päiväkirja', sublabel: 'Viimeaikaiset havainnot' },
+  { href: '/standings', label: 'Tilanne', sublabel: 'Joukkueet ja yksilöt' },
 ];
 
 export function BottomNav() {

@@ -1,8 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type Species = {
   id: number;
@@ -55,7 +54,6 @@ export function FieldLogForm({
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [notification, setNotification] = useState<Notification | null>(null);
-  const supabase = useMemo(() => createClient(), []);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
   // Auto-dismiss notification
@@ -83,14 +81,13 @@ export function FieldLogForm({
     if (value.length < 2) { setSuggestions([]); return; }
 
     debounceRef.current = setTimeout(async () => {
-      const { data } = await supabase
-        .from('species')
-        .select('id, common_name, scientific_name, finnish_name, english_name, image_url')
-        .or(`finnish_name.ilike.%${value}%,common_name.ilike.%${value}%,scientific_name.ilike.%${value}%`)
-        .limit(5);
-      if (data) setSuggestions(data as Species[]);
+      const res = await fetch(`/api/search-species?q=${encodeURIComponent(value)}`);
+      if (res.ok) {
+        const data: Species[] = await res.json();
+        setSuggestions(data);
+      }
     }, 200);
-  }, [supabase]);
+  }, []);
 
   const selectSpecies = (s: Species) => {
     setSelectedSpecies(s);
@@ -124,24 +121,30 @@ export function FieldLogForm({
       notes: notes || null,
     };
 
-    const { data, error } = await supabase.from('sightings').insert(payload).select('is_new_for_user_year, is_new_for_team_year').single();
-    setSubmitting(false);
+    const res = await fetch('/api/sightings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-    if (error) {
-      const msg = error.message;
+    setSubmitting(false);
+    const result = await res.json();
+
+    if (!res.ok) {
+      const msg = result.error ?? 'Tuntematon virhe';
       if (msg.includes('not registered in competition')) {
-        setNotification({ type: 'error', text: 'Your team is not registered in the active competition.' });
+        setNotification({ type: 'error', text: 'Joukkuettasi ei ole rekisteröity aktiiviseen kilpailuun.' });
       } else if (msg.includes('not a member')) {
-        setNotification({ type: 'error', text: 'Selected user is not a member of your team.' });
+        setNotification({ type: 'error', text: 'Valittu käyttäjä ei ole joukkueesi jäsen.' });
       } else if (msg.includes('outside')) {
-        setNotification({ type: 'error', text: 'Sighting date is outside competition range.' });
+        setNotification({ type: 'error', text: 'Havaintopäivä on kilpailuajan ulkopuolella.' });
       } else {
-        setNotification({ type: 'error', text: `Save failed: ${msg}` });
+        setNotification({ type: 'error', text: `Tallennus epäonnistui: ${msg}` });
       }
       return;
     }
 
-    const isNew = data?.is_new_for_user_year || data?.is_new_for_team_year;
+    const isNew = result.is_new_for_user_year || result.is_new_for_team_year;
     setNotification({
       type: 'success',
       text: isNew ? 'Uusi laji!' : 'Tallennettu',
@@ -149,11 +152,6 @@ export function FieldLogForm({
       isNew,
     });
     resetForm();
-  };
-
-  const formatTime = (iso: string) => {
-    const d = new Date(iso);
-    return d.toLocaleTimeString('fi-FI', { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
@@ -172,7 +170,7 @@ export function FieldLogForm({
       )}
 
       <div style={{ padding: '0 18px' }}>
-        {/* Step 1: Search */}
+        {/* Vaihe 1: Haku */}
         <input
           className="search-input"
           value={query}
@@ -199,7 +197,7 @@ export function FieldLogForm({
           </div>
         )}
 
-        {/* Step 2: Species card */}
+        {/* Vaihe 2: Lajikortti */}
         {selectedSpecies && (
           <div className="species-card">
             {selectedSpecies.image_url ? (
@@ -222,11 +220,11 @@ export function FieldLogForm({
           </div>
         )}
 
-        {/* Step 3: Ruled form rows */}
+        {/* Vaihe 3: Lomakerivit */}
         {selectedSpecies && (
           <div className="ruled-card">
             <div className="ruled-row">
-              <div className="ruled-label">Time</div>
+              <div className="ruled-label">Aika</div>
               <div className="ruled-value">
                 <input
                   type="datetime-local"
@@ -236,7 +234,7 @@ export function FieldLogForm({
               </div>
             </div>
             <div className="ruled-row">
-              <div className="ruled-label">Location</div>
+              <div className="ruled-label">Paikka</div>
               <div className="ruled-value">
                 {lat && lon ? (
                   <span className="text-value">
@@ -246,14 +244,14 @@ export function FieldLogForm({
                   </span>
                 ) : (
                   <span style={{ color: 'var(--ink-light)', fontFamily: 'var(--font-script)', fontSize: 18 }}>
-                    Fetching GPS...
+                    Haetaan sijaintia...
                   </span>
                 )}
               </div>
             </div>
             {teammates.length > 1 && (
               <div className="ruled-row">
-                <div className="ruled-label">Observer</div>
+                <div className="ruled-label">Havainnoija</div>
                 <div className="ruled-value">
                   <select value={sightedFor} onChange={(e) => setSightedFor(e.target.value)}>
                     {teammates.map((t) => (
@@ -266,7 +264,7 @@ export function FieldLogForm({
               </div>
             )}
             <div className="ruled-row">
-              <div className="ruled-label">Notes</div>
+              <div className="ruled-label">Muistiinpanot</div>
               <div className="ruled-value">
                 <textarea
                   value={notes}
@@ -278,7 +276,7 @@ export function FieldLogForm({
           </div>
         )}
 
-        {/* Step 4: Save */}
+        {/* Vaihe 4: Tallenna */}
         {selectedSpecies && (
           <button
             className="btn-save"
@@ -291,7 +289,7 @@ export function FieldLogForm({
 
         {!membership && selectedSpecies && (
           <div className="error-notification" style={{ marginTop: 8, borderRadius: 'var(--radius-md)' }}>
-            No active team membership found.
+            Aktiivista joukkuejäsenyyttä ei löytynyt.
           </div>
         )}
       </div>

@@ -1,5 +1,5 @@
 import { TopBar } from '@/components/top-bar';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
 
 const TEAM_COLORS = ['#6B6050', '#8B6914', '#4A6741', '#5B4A8A', '#8A4A4A', '#4A6B8A'];
 
@@ -15,7 +15,7 @@ function initials(name: string) {
 }
 
 export default async function StandingsPage() {
-  const supabase = createClient();
+  const supabase = createServiceClient();
 
   const { data: competitions } = await supabase
     .from('competitions')
@@ -75,7 +75,7 @@ export default async function StandingsPage() {
   return (
     <>
       <TopBar
-        title="Standings"
+        title="Tilanne"
         eyebrow={comp ? `100 lajia · ${comp.year}` : '100 lajia'}
       />
       <div style={{ padding: '0 18px' }}>
@@ -83,7 +83,7 @@ export default async function StandingsPage() {
         <div className="lb-section-label">Joukkueet</div>
         {teamScores.length === 0 && (
           <div style={{ padding: '12px 0' }}>
-            <span className="text-meta">No team scores yet.</span>
+            <span className="text-meta">Ei joukkuetuloksia vielä.</span>
           </div>
         )}
         {teamScores.map((row, i) => {
@@ -96,7 +96,7 @@ export default async function StandingsPage() {
               <span className="lb-avatar" style={{ background: color }}>{initials(name)}</span>
               <div style={{ flex: 1 }}>
                 <div className="lb-name">{name}</div>
-                <div className="lb-subtitle">{members} member{members !== 1 ? 's' : ''}</div>
+                <div className="lb-subtitle">{members} jäsentä</div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span className="lb-score">{row.unique_species_count}</span>
@@ -112,7 +112,7 @@ export default async function StandingsPage() {
         <div className="lb-section-label">Yksilöt</div>
         {individualScores.length === 0 && (
           <div style={{ padding: '12px 0' }}>
-            <span className="text-meta">No individual scores yet.</span>
+            <span className="text-meta">Ei yksilötuloksia vielä.</span>
           </div>
         )}
         {individualScores.map((row, i) => {
