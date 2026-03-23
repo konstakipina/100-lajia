@@ -1,6 +1,18 @@
 // supabase/functions/teams/index.ts
 // Team management. GET returns teams with members and scores.
 // POST/PATCH/DELETE: admin only.
+//
+// MIGRATION REQUIRED — run in Supabase SQL editor before deploying:
+//
+// CREATE OR REPLACE FUNCTION get_team_score(team_uuid uuid)
+// RETURNS integer
+// LANGUAGE sql
+// STABLE
+// AS $$
+//   SELECT COALESCE(COUNT(DISTINCT species_id)::integer, 0)
+//   FROM sightings
+//   WHERE team_id = team_uuid;
+// $$;
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.47.0";
@@ -69,13 +81,9 @@ serve(async (req: Request) => {
         // For each team, compute unique species count (team score)
         const result = await Promise.all(
           (teams ?? []).map(async (t: any) => {
-            const { count } = await supabase
-              .from("sightings")
-              .select("species_id", { count: "exact", head: false })
-              .eq("team_id", t.id)
-              // TODO: this counts rows, not distinct species.
-              // Replace with a DB view or RPC for COUNT(DISTINCT species_id).
-              ;
+            const { data: scoreData } = await supabase.rpc("get_team_score", {
+              team_uuid: t.id,
+            });
 
             const members = (t.team_members ?? []).map(
               (tm: any) => tm.profiles
@@ -85,7 +93,7 @@ serve(async (req: Request) => {
               ...t,
               team_members: undefined,
               members,
-              score: count ?? 0, // TODO: fix to distinct count
+              score: scoreData ?? 0,
             };
           })
         );

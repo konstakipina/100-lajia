@@ -44,6 +44,33 @@ serve(async (req: Request) => {
       });
     }
 
+    const url = new URL(req.url);
+    const scope = url.searchParams.get("scope") ?? "me";
+
+    // Admin-only: list all profiles
+    if (scope === "all") {
+      const { data: adminCheck } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+      if (!adminCheck) {
+        return new Response(JSON.stringify({ error: "Forbidden" }), {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const { data: allProfiles, error: allError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("display_name");
+      if (allError) throw allError;
+      return new Response(JSON.stringify(allProfiles), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch profile
     const { data: profile, error: profError } = await supabase
       .from("profiles")

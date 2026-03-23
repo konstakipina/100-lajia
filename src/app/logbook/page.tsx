@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import FilterBar from "@/components/FilterBar";
 import FeedItem from "@/components/FeedItem";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import ErrorMessage from "@/components/ErrorMessage";
 import * as api from "@/lib/api";
 import type { SightingDisplay, TeamWithMembers } from "@/types";
 
@@ -13,18 +15,29 @@ export default function LogbookPage() {
   const [teams, setTeams] = useState<TeamWithMembers[]>([]);
   const [activeTeam, setActiveTeam] = useState("Kaikki");
   const [activeObserver, setActiveObserver] = useState("Kaikki");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function init() {
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
       const [s, t] = await Promise.all([
         api.listSightings(),
         api.listTeams(),
       ]);
       setSightings(s);
       setTeams(t);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
-    init();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const teamNames = useMemo(() => teams.map((t) => t.name), [teams]);
 
@@ -79,15 +92,17 @@ export default function LogbookPage() {
           flex: 1,
         }}
       >
-        {filtered.length > 0 ? (
+        {loading && <LoadingIndicator />}
+        {error && <ErrorMessage message={error} onRetry={loadData} />}
+        {!loading && !error && filtered.length > 0 ? (
           filtered.map((s, i) => (
             <FeedItem key={s.id} sighting={s} index={i} showObserver />
           ))
-        ) : (
+        ) : !loading && !error ? (
           <div style={{ fontSize: "14px", color: "var(--inkl)", padding: "16px 0" }}>
             Ei havaintoja.
           </div>
-        )}
+        ) : null}
       </div>
       <BottomNav />
     </div>
