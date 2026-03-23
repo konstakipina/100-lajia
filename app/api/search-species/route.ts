@@ -6,6 +6,8 @@ export async function GET(req: NextRequest) {
   if (q.length < 2) return NextResponse.json([]);
 
   const supabase = createServiceClient();
+  if (!supabase) return NextResponse.json([]);
+
   const { data, error } = await supabase
     .from('species')
     .select('id, common_name, scientific_name, finnish_name, english_name, image_url')

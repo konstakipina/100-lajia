@@ -15,6 +15,10 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = createServiceClient();
+  if (!supabase) {
+    return NextResponse.json({ error: 'Tietokantayhteys puuttuu' }, { status: 503 });
+  }
+
   const { data, error } = await supabase
     .from('sightings')
     .insert(payload)

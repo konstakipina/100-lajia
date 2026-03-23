@@ -20,33 +20,38 @@ type Sighting = {
 export default async function LogbookPage() {
   const supabase = createServiceClient();
 
-  const { data: competitions } = await supabase
-    .from('competitions')
-    .select('id, year')
-    .eq('is_active', true)
-    .limit(1);
+  let sightings: Sighting[] = [];
+  let comp: { id: string; year: number } | undefined;
+  const nameById = new Map<string, string>();
 
-  const comp = competitions?.[0];
+  if (supabase) {
+    const { data: competitions } = await supabase
+      .from('competitions')
+      .select('id, year')
+      .eq('is_active', true)
+      .limit(1);
 
-  const { data: sightingsRaw } = comp
-    ? await supabase
+    comp = competitions?.[0];
+
+    if (comp) {
+      const { data: sightingsRaw } = await supabase
         .from('v_latest_sightings')
         .select(
           'id, competition_year, common_name, scientific_name, finnish_name, english_name, sighted_for_user_id, entered_by_user_id, team_name, seen_at, location_label, is_new_for_user_year, is_new_for_team_year'
         )
         .eq('competition_id', comp.id)
         .order('seen_at', { ascending: false })
-        .limit(50)
-    : { data: [] };
+        .limit(50);
 
-  const sightings = (sightingsRaw ?? []) as Sighting[];
+      sightings = (sightingsRaw ?? []) as Sighting[];
 
-  const userIds = [...new Set(sightings.flatMap((s) => [s.sighted_for_user_id, s.entered_by_user_id]))];
-  const { data: profiles } = userIds.length
-    ? await supabase.from('profiles').select('id, display_name').in('id', userIds)
-    : { data: [] };
-
-  const nameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
+      const userIds = [...new Set(sightings.flatMap((s) => [s.sighted_for_user_id, s.entered_by_user_id]))];
+      if (userIds.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', userIds);
+        for (const p of profiles ?? []) nameById.set(p.id, p.display_name);
+      }
+    }
+  }
 
   const formatTime = (iso: string) => {
     const d = new Date(iso);

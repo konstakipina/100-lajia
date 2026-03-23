@@ -17,59 +17,58 @@ function initials(name: string) {
 export default async function StandingsPage() {
   const supabase = createServiceClient();
 
-  const { data: competitions } = await supabase
-    .from('competitions')
-    .select('id, name, year')
-    .eq('is_active', true)
-    .limit(1);
+  let comp: { id: string; name: string; year: number } | undefined;
+  let teamScores: { team_id: string; unique_species_count: number; total_sightings: number }[] = [];
+  let individualScores: { user_id: string; unique_species_count: number; total_sightings: number }[] = [];
+  const teamNameById = new Map<string, string>();
+  const userNameById = new Map<string, string>();
+  const userTeamMap = new Map<string, string>();
+  const teamMemberCount = new Map<string, number>();
 
-  const comp = competitions?.[0];
+  if (supabase) {
+    const { data: competitions } = await supabase
+      .from('competitions')
+      .select('id, name, year')
+      .eq('is_active', true)
+      .limit(1);
 
-  const { data: teamScoresRaw } = comp
-    ? await supabase
+    comp = competitions?.[0];
+
+    if (comp) {
+      const { data: tsRaw } = await supabase
         .from('v_team_scores')
         .select('team_id, unique_species_count, total_sightings')
         .eq('competition_id', comp.id)
-        .order('unique_species_count', { ascending: false })
-    : { data: [] };
+        .order('unique_species_count', { ascending: false });
+      teamScores = tsRaw ?? [];
 
-  const { data: individualScoresRaw } = comp
-    ? await supabase
+      const { data: isRaw } = await supabase
         .from('v_individual_scores')
         .select('user_id, unique_species_count, total_sightings')
         .eq('competition_id', comp.id)
-        .order('unique_species_count', { ascending: false })
-    : { data: [] };
+        .order('unique_species_count', { ascending: false });
+      individualScores = isRaw ?? [];
 
-  const teamScores = teamScoresRaw ?? [];
-  const individualScores = individualScoresRaw ?? [];
+      const teamIds = [...new Set(teamScores.map((s) => s.team_id))];
+      const userIds = [...new Set(individualScores.map((s) => s.user_id))];
 
-  const teamIds = [...new Set(teamScores.map((s) => s.team_id))];
-  const userIds = [...new Set(individualScores.map((s) => s.user_id))];
+      if (teamIds.length) {
+        const { data: teams } = await supabase.from('teams').select('id, name').in('id', teamIds);
+        for (const t of teams ?? []) teamNameById.set(t.id, t.name);
+      }
+      if (userIds.length) {
+        const { data: profiles } = await supabase.from('profiles').select('id, display_name').in('id', userIds);
+        for (const p of profiles ?? []) userNameById.set(p.id, p.display_name);
 
-  const { data: teams } = teamIds.length
-    ? await supabase.from('teams').select('id, name').in('id', teamIds)
-    : { data: [] };
-  const { data: profiles } = userIds.length
-    ? await supabase.from('profiles').select('id, display_name').in('id', userIds)
-    : { data: [] };
+        const { data: memberData } = await supabase.from('team_members').select('user_id, team_id').eq('competition_id', comp.id).in('user_id', userIds);
+        for (const m of memberData ?? []) userTeamMap.set(m.user_id, teamNameById.get(m.team_id) ?? '');
+      }
 
-  // Map user_id -> team_name for individual section
-  const { data: memberData } = comp && userIds.length
-    ? await supabase.from('team_members').select('user_id, team_id').eq('competition_id', comp.id).in('user_id', userIds)
-    : { data: [] };
-
-  const teamNameById = new Map((teams ?? []).map((t) => [t.id, t.name]));
-  const userNameById = new Map((profiles ?? []).map((p) => [p.id, p.display_name]));
-  const userTeamMap = new Map((memberData ?? []).map((m) => [m.user_id, teamNameById.get(m.team_id) ?? '']));
-
-  // Team member counts
-  const { data: allMembers } = comp
-    ? await supabase.from('team_members').select('team_id').eq('competition_id', comp.id)
-    : { data: [] };
-  const teamMemberCount = new Map<string, number>();
-  for (const m of allMembers ?? []) {
-    teamMemberCount.set(m.team_id, (teamMemberCount.get(m.team_id) ?? 0) + 1);
+      const { data: allMembers } = await supabase.from('team_members').select('team_id').eq('competition_id', comp.id);
+      for (const m of allMembers ?? []) {
+        teamMemberCount.set(m.team_id, (teamMemberCount.get(m.team_id) ?? 0) + 1);
+      }
+    }
   }
 
   return (
@@ -79,7 +78,7 @@ export default async function StandingsPage() {
         eyebrow={comp ? `100 lajia · ${comp.year}` : '100 lajia'}
       />
       <div style={{ padding: '0 18px' }}>
-        {/* Teams */}
+        {/* Joukkueet */}
         <div className="lb-section-label">Joukkueet</div>
         {teamScores.length === 0 && (
           <div style={{ padding: '12px 0' }}>
@@ -108,7 +107,7 @@ export default async function StandingsPage() {
 
         <hr className="divider" />
 
-        {/* Individuals */}
+        {/* Yksilöt */}
         <div className="lb-section-label">Yksilöt</div>
         {individualScores.length === 0 && (
           <div style={{ padding: '12px 0' }}>

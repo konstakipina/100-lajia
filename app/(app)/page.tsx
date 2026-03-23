@@ -7,48 +7,51 @@ export default async function FieldLogPage() {
   const user = getDemoUser()!;
   const supabase = createServiceClient();
 
-  const { data: competitions } = await supabase
-    .from('competitions')
-    .select('id, name, year')
-    .eq('is_active', true)
-    .limit(1);
-
-  const comp = competitions?.[0];
-
+  let comp: { id: string; name: string; year: number } | undefined;
   let membership: { team_id: string; competition_id: string } | null = null;
   let teammates: { user_id: string; display_name: string }[] = [];
   let teamName: string | null = null;
 
-  if (comp) {
-    const { data: memberData } = await supabase
-      .from('team_members')
-      .select('team_id, competition_id, teams(name)')
-      .eq('user_id', user.id)
-      .eq('competition_id', comp.id)
-      .limit(1)
-      .maybeSingle();
+  if (supabase) {
+    const { data: competitions } = await supabase
+      .from('competitions')
+      .select('id, name, year')
+      .eq('is_active', true)
+      .limit(1);
 
-    if (memberData) {
-      membership = { team_id: memberData.team_id, competition_id: memberData.competition_id };
-      teamName = ((memberData.teams as unknown) as Record<string, unknown>)?.name as string ?? null;
+    comp = competitions?.[0];
 
-      const { data: members } = await supabase
+    if (comp) {
+      const { data: memberData } = await supabase
         .from('team_members')
-        .select('user_id')
-        .eq('team_id', memberData.team_id)
-        .eq('competition_id', comp.id);
+        .select('team_id, competition_id, teams(name)')
+        .eq('user_id', user.id)
+        .eq('competition_id', comp.id)
+        .limit(1)
+        .maybeSingle();
 
-      const memberIds = (members ?? []).map((m) => m.user_id);
-      if (memberIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, display_name')
-          .in('id', memberIds);
+      if (memberData) {
+        membership = { team_id: memberData.team_id, competition_id: memberData.competition_id };
+        teamName = ((memberData.teams as unknown) as Record<string, unknown>)?.name as string ?? null;
 
-        teammates = (profiles ?? []).map((p) => ({
-          user_id: p.id,
-          display_name: p.display_name,
-        }));
+        const { data: members } = await supabase
+          .from('team_members')
+          .select('user_id')
+          .eq('team_id', memberData.team_id)
+          .eq('competition_id', comp.id);
+
+        const memberIds = (members ?? []).map((m) => m.user_id);
+        if (memberIds.length > 0) {
+          const { data: profiles } = await supabase
+            .from('profiles')
+            .select('id, display_name')
+            .in('id', memberIds);
+
+          teammates = (profiles ?? []).map((p) => ({
+            user_id: p.id,
+            display_name: p.display_name,
+          }));
+        }
       }
     }
   }
