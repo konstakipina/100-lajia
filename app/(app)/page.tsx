@@ -1,9 +1,10 @@
-import Link from 'next/link';
+import { TopBar } from '@/components/top-bar';
+import { FieldLogForm } from '@/components/field-log-form';
 import { getDemoUser } from '@/lib/demo-auth';
 import { createClient } from '@/lib/supabase/server';
 
-export default async function DashboardPage() {
-  const user = getDemoUser();
+export default async function FieldLogPage() {
+  const user = getDemoUser()!;
   const supabase = createClient();
 
   const { data: competitions } = await supabase
@@ -14,71 +15,51 @@ export default async function DashboardPage() {
 
   const comp = competitions?.[0];
 
+  let membership: { team_id: string; competition_id: string } | null = null;
+  let teammates: { user_id: string; display_name: string }[] = [];
   let teamName: string | null = null;
-  let userSpeciesCount = 0;
-  let teamSpeciesCount = 0;
 
-  if (comp && user) {
-    const { data: membership } = await supabase
+  if (comp) {
+    const { data: memberData } = await supabase
       .from('team_members')
-      .select('team_id, teams(name)')
+      .select('team_id, competition_id, teams(name)')
       .eq('user_id', user.id)
       .eq('competition_id', comp.id)
       .limit(1)
       .maybeSingle();
 
-    if (membership) {
-      teamName = ((membership.teams as unknown) as Record<string, unknown>)?.name as string ?? null;
+    if (memberData) {
+      membership = { team_id: memberData.team_id, competition_id: memberData.competition_id };
+      teamName = ((memberData.teams as unknown) as Record<string, unknown>)?.name as string ?? null;
 
-      const { data: indScore } = await supabase
-        .from('v_individual_scores')
-        .select('unique_species_count')
-        .eq('competition_id', comp.id)
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const { data: members } = await supabase
+        .from('team_members')
+        .select('user_id')
+        .eq('team_id', memberData.team_id)
+        .eq('competition_id', comp.id);
 
-      userSpeciesCount = indScore?.unique_species_count ?? 0;
+      const memberIds = (members ?? []).map((m) => m.user_id);
+      if (memberIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', memberIds);
 
-      const { data: teamScore } = await supabase
-        .from('v_team_scores')
-        .select('unique_species_count')
-        .eq('competition_id', comp.id)
-        .eq('team_id', membership.team_id)
-        .maybeSingle();
-
-      teamSpeciesCount = teamScore?.unique_species_count ?? 0;
+        teammates = (profiles ?? []).map((p) => ({
+          user_id: p.id,
+          display_name: p.display_name,
+        }));
+      }
     }
   }
 
-  return (
-    <div>
-      <div className="card">
-        <h1>{comp ? `${comp.name} ${comp.year}` : 'Competition dashboard'}</h1>
-        {user && <p className="small">Signed in as <strong>{user.display_name}</strong></p>}
-        {teamName && (
-          <p>
-            Team: <strong>{teamName}</strong>
-          </p>
-        )}
-        {comp && (
-          <div className="row" style={{ gridTemplateColumns: '1fr 1fr', marginTop: 8 }}>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{userSpeciesCount}</div>
-              <div className="small">Your species</div>
-            </div>
-            <div className="card" style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{teamSpeciesCount}</div>
-              <div className="small">Team species</div>
-            </div>
-          </div>
-        )}
-      </div>
+  const eyebrow = comp ? `100 lajia · ${comp.year}` : '100 lajia';
+  const meta = teamName ? `${teamName} · ${user.display_name}` : user.display_name;
 
-      <div className="row">
-        <Link className="btn btn-primary" href="/sightings/new">Log a sighting</Link>
-        <Link className="btn btn-secondary" href="/sightings/latest">Latest sightings</Link>
-        <Link className="btn btn-secondary" href="/leaderboard">Leaderboard</Link>
-      </div>
-    </div>
+  return (
+    <>
+      <TopBar title="Field log" eyebrow={eyebrow} meta={meta} />
+      <FieldLogForm membership={membership} userId={user.id} teammates={teammates} />
+    </>
   );
 }

@@ -1,27 +1,197 @@
-* { box-sizing: border-box; }
-body { margin: 0; font-family: Inter, Arial, sans-serif; background: #f4f7fb; color: #111827; }
-a { color: inherit; text-decoration: none; }
-.container { max-width: 720px; margin: 0 auto; padding: 16px; }
-.card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; }
-.btn { border: none; border-radius: 10px; padding: 12px 14px; font-weight: 600; cursor: pointer; }
-.btn-primary { background: #1d4ed8; color: white; }
-.btn-secondary { background: #e5e7eb; color: #111827; }
-.input, .select { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; }
-.label { display: block; font-size: 14px; margin-bottom: 6px; font-weight: 600; }
-.row { display: grid; gap: 10px; }
-.nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
-.small { font-size: 12px; color: #6b7280; }
-.suggestion { padding: 8px; border-bottom: 1px solid #e5e7eb; cursor: pointer; }
-.sticky-save { position: sticky; bottom: 12px; }
-.badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px; white-space: nowrap; }
-.badge-team { background: #dcfce7; color: #166534; }
-.badge-user { background: #dbeafe; color: #1e40af; }
-.message { padding: 10px; border-radius: 8px; font-size: 14px; }
-.message-success { background: #dcfce7; color: #166534; }
-.message-error { background: #fee2e2; color: #991b1b; }
-.btn:disabled { opacity: 0.6; cursor: not-allowed; }
+/*
+  100 lajia — Design System
+  A physical field notebook: warm paper tones, handwritten species names,
+  ruled form rows, minimal chrome.
+*/
 
-/* User picker */
-.user-btn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; font-size: 16px; text-align: left; transition: background 0.15s; }
-.user-btn:hover { background: #2563eb; }
-.user-avatar { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; color: white; }
+/* ─── Design tokens ──────────────────────────────────────── */
+:root {
+  --paper:          #F6F2EA;
+  --card:           #FAF7F0;
+  --border:         #D8D2C2;
+  --border-faint:   #E8E2D4;
+  --ink:            #2A2018;
+  --ink-mid:        #6B6050;
+  --ink-light:      #A89880;
+  --forest:         #3B6D11;
+  --forest-fill:    #EAF3DE;
+  --forest-border:  #C0DD97;
+  --forest-text:    #27500A;
+  --font-script:    'Caveat', cursive;
+  --font-serif:     'Crimson Pro', serif;
+  --font-sans:      system-ui, -apple-system, sans-serif;
+  --radius-sm:      8px;
+  --radius-md:      10px;
+  --radius-lg:      12px;
+}
+
+/* ─── Base ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+}
+a { color: inherit; text-decoration: none; }
+
+.page-wrap {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.page-content {
+  flex: 1;
+  padding: 0 18px 24px;
+}
+
+/* ─── Typography ─────────────────────────────────────────── */
+.text-species { font-family: var(--font-script); font-size: 28px; font-weight: 400; color: var(--ink); line-height: 1.1; }
+.text-title { font-family: var(--font-script); font-size: 26px; color: var(--ink); line-height: 1.15; }
+.text-value { font-family: var(--font-script); font-size: 20px; color: var(--ink); }
+.text-nav { font-family: var(--font-script); font-size: 18px; color: var(--ink-mid); }
+.text-scientific { font-family: var(--font-serif); font-style: italic; font-size: 14px; color: var(--ink-light); }
+.text-label { font-family: var(--font-sans); font-size: 9px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-light); }
+.text-meta { font-family: var(--font-sans); font-size: 11px; color: var(--ink-light); }
+
+/* ─── New species marker ─────────────────────────────────── */
+.species-name-row { display: flex; align-items: baseline; gap: 4px; }
+.new-marker { font-family: var(--font-script); font-size: 32px; color: var(--forest); line-height: 1; }
+
+/* ─── Top bar ────────────────────────────────────────────── */
+.topbar { padding: 14px 18px; border-bottom: 0.5px solid var(--border-faint); background: var(--paper); }
+.topbar-eyebrow { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); margin-bottom: 4px; }
+.topbar-title { font-family: var(--font-script); font-size: 26px; color: var(--ink); }
+.topbar-meta { font-size: 11px; color: var(--ink-mid); margin-top: 3px; }
+
+/* ─── Search input ───────────────────────────────────────── */
+.search-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  padding: 10px 0;
+  font-family: var(--font-script);
+  font-size: 20px;
+  color: var(--ink);
+  outline: none;
+}
+.search-input::placeholder { color: var(--ink-light); }
+.search-input:focus { border-bottom-color: var(--ink); }
+
+/* ─── Autocomplete dropdown ──────────────────────────────── */
+.dropdown { border: 0.5px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--card); margin-top: 4px; }
+.dropdown-item { display: flex; align-items: center; gap: 11px; padding: 10px 14px; border-bottom: 0.5px solid var(--border-faint); cursor: pointer; }
+.dropdown-item:last-child { border-bottom: none; }
+.dropdown-item:hover { background: #F0EBE0; }
+.dropdown-thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; border: 0.5px solid var(--border); flex-shrink: 0; background: var(--border-faint); }
+.dropdown-name { font-family: var(--font-script); font-size: 16px; color: var(--ink); }
+.dropdown-scientific { font-family: var(--font-serif); font-style: italic; font-size: 11px; color: var(--ink-light); }
+
+/* ─── Species card ───────────────────────────────────────── */
+.species-card { border-radius: var(--radius-lg); overflow: hidden; border: 0.5px solid var(--border); background: var(--card); margin-top: 16px; }
+.species-card-image { width: 100%; height: 160px; object-fit: cover; display: block; }
+.species-card-body { padding: 12px 14px 14px; }
+.species-card-scientific { font-family: var(--font-serif); font-style: italic; font-size: 12px; color: var(--ink-light); margin-top: 2px; }
+
+/* ─── Ruled form rows ────────────────────────────────────── */
+.ruled-card { border: 0.5px solid var(--border); border-radius: var(--radius-md); overflow: hidden; background: var(--card); margin-top: 16px; }
+.ruled-row { display: flex; align-items: stretch; border-bottom: 0.5px solid var(--border-faint); }
+.ruled-row:last-child { border-bottom: none; }
+.ruled-label { width: 72px; flex-shrink: 0; padding: 11px 0 11px 12px; font-size: 9px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-light); display: flex; align-items: center; }
+.ruled-value { flex: 1; border-left: 0.5px solid var(--border-faint); padding: 10px 12px; font-family: var(--font-script); font-size: 18px; color: var(--ink); }
+.ruled-value select { border: none; background: transparent; font-family: var(--font-script); font-size: 18px; color: var(--ink); outline: none; width: 100%; padding: 0; -webkit-appearance: none; appearance: none; }
+.ruled-value textarea { border: none; background: transparent; font-family: var(--font-serif); font-style: italic; font-size: 15px; color: var(--ink-mid); outline: none; resize: none; width: 100%; height: 52px; padding: 0; }
+.ruled-value textarea::placeholder { color: var(--ink-light); }
+.ruled-value input[type="datetime-local"] { border: none; background: transparent; font-family: var(--font-script); font-size: 18px; color: var(--ink); outline: none; width: 100%; padding: 0; }
+.gps-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--forest); margin-right: 5px; vertical-align: middle; }
+
+/* ─── Primary button ─────────────────────────────────────── */
+.btn-save {
+  width: 100%;
+  padding: 14px;
+  background: var(--ink);
+  color: var(--paper);
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  margin-top: 16px;
+}
+.btn-save:active { opacity: 0.85; }
+.btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Save notification ──────────────────────────────────── */
+.save-notification {
+  background: var(--forest-fill);
+  border-bottom: 0.5px solid var(--forest-border);
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: notif-in 0.3s ease;
+}
+@keyframes notif-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+.save-notification-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--forest); flex-shrink: 0; }
+.save-notification-text { font-size: 13px; font-weight: 500; color: var(--forest-text); }
+.save-notification-species { font-family: var(--font-serif); font-style: italic; font-size: 12px; color: var(--forest); margin-left: auto; }
+
+/* ─── Error notification ─────────────────────────────────── */
+.error-notification {
+  background: #FEF2F2;
+  border-bottom: 0.5px solid #FECACA;
+  padding: 10px 18px;
+  font-size: 13px;
+  color: #991B1B;
+}
+
+/* ─── Feed item (Logbook) ────────────────────────────────── */
+.feed-item { display: flex; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border-faint); }
+.feed-item:last-child { border-bottom: none; }
+.feed-thumb { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex-shrink: 0; border: 0.5px solid var(--border); background: var(--border-faint); }
+.feed-species { font-family: var(--font-script); font-size: 17px; color: var(--ink); display: flex; align-items: baseline; gap: 3px; }
+.feed-new-marker { font-family: var(--font-script); font-size: 20px; color: var(--forest); }
+.feed-scientific { font-family: var(--font-serif); font-style: italic; font-size: 11px; color: var(--ink-mid); }
+.feed-meta { font-size: 10px; color: var(--ink-light); margin-top: 3px; }
+.feed-date-header { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); padding: 16px 0 6px; }
+
+/* ─── Leaderboard ────────────────────────────────────────── */
+.lb-section-label { font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-light); padding-bottom: 10px; }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border-faint); }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { font-family: var(--font-script); font-size: 18px; color: var(--ink-light); width: 18px; text-align: center; flex-shrink: 0; }
+.lb-rank.gold { color: #BA7517; }
+.lb-rank.silver { color: #888780; }
+.lb-rank.bronze { color: #854F0B; }
+.lb-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; color: white; }
+.lb-name { font-family: var(--font-script); font-size: 16px; color: var(--ink); flex: 1; }
+.lb-subtitle { font-size: 10px; color: var(--ink-light); }
+.lb-score { font-family: var(--font-script); font-size: 20px; color: var(--ink); }
+.lb-score-unit { font-family: var(--font-sans); font-size: 10px; color: var(--ink-light); margin-left: 2px; }
+
+/* ─── Bottom navigation ──────────────────────────────────── */
+.bottom-nav { border-top: 0.5px solid var(--border); padding: 10px 18px 24px; background: var(--paper); }
+.nav-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 0.5px solid var(--border-faint); cursor: pointer; text-decoration: none; }
+.nav-item:last-child { border-bottom: none; }
+.nav-label { font-family: var(--font-script); font-size: 18px; color: var(--ink-mid); }
+.nav-sublabel { font-size: 10px; color: var(--ink-light); margin-top: 1px; }
+.nav-arrow { margin-left: auto; font-size: 14px; color: var(--ink-light); }
+.nav-item.active .nav-label { color: var(--ink); }
+.nav-item.active .nav-sublabel { color: var(--ink-mid); }
+
+/* ─── User picker (login) ───────────────────────────────── */
+.picker-card { border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--card); }
+.picker-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 0.5px solid var(--border-faint); cursor: pointer; background: none; border-left: none; border-right: none; border-top: none; width: 100%; text-align: left; font-family: var(--font-script); font-size: 20px; color: var(--ink); }
+.picker-item:last-child { border-bottom: none; }
+.picker-item:hover { background: #F0EBE0; }
+.picker-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: white; flex-shrink: 0; }
+
+/* ─── Divider ────────────────────────────────────────────── */
+.divider { border: none; border-top: 0.5px solid var(--border); margin: 20px 0; }

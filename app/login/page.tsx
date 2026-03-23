@@ -3,8 +3,8 @@
 import { useRouter } from 'next/navigation';
 
 const DEMO_USERS = [
-  { id: '00000000-0000-0000-0000-000000000001', display_name: 'Saara' },
-  { id: '00000000-0000-0000-0000-000000000002', display_name: 'Konsta' },
+  { id: '00000000-0000-0000-0000-000000000001', display_name: 'Saara', color: '#4A6741' },
+  { id: '00000000-0000-0000-0000-000000000002', display_name: 'Konsta', color: '#5B4A8A' },
 ];
 
 export default function LoginPage() {
@@ -20,27 +20,26 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="container" style={{ paddingTop: 48 }}>
-      <div className="card" style={{ textAlign: 'center' }}>
-        <h1 style={{ margin: '0 0 4px' }}>100 Lajia</h1>
-        <p className="small" style={{ margin: 0 }}>Bird sighting competition tracker</p>
+    <div className="page-wrap">
+      <div className="topbar" style={{ textAlign: 'center', padding: '48px 18px 24px' }}>
+        <div className="topbar-eyebrow">100 lajia</div>
+        <div className="topbar-title" style={{ fontSize: 32 }}>Field notebook</div>
+        <div className="topbar-meta" style={{ marginTop: 6 }}>Bird sighting competition tracker</div>
       </div>
 
-      <div className="card">
-        <h2 style={{ marginTop: 0, marginBottom: 12 }}>Who are you?</h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ padding: '0 18px' }}>
+        <div className="text-label" style={{ marginBottom: 10 }}>Who are you?</div>
+        <div className="picker-card">
           {DEMO_USERS.map((u) => (
-            <button
-              key={u.id}
-              className="btn btn-primary user-btn"
-              onClick={() => pick(u.id)}
-            >
-              <span className="user-avatar">{u.display_name[0]}</span>
+            <button key={u.id} className="picker-item" onClick={() => pick(u.id)}>
+              <span className="picker-avatar" style={{ background: u.color }}>
+                {u.display_name[0]}
+              </span>
               <span>{u.display_name}</span>
             </button>
           ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
