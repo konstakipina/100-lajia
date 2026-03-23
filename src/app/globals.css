@@ -1,0 +1,33 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;500&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --p: #f6f2ea;
+  --card: #faf7f0;
+  --border: #d8d2c2;
+  --bf: #e8e2d4;
+  --ink: #2a2018;
+  --inkm: #6b6050;
+  --inkl: #a89880;
+  --acc: #3b6d11;
+  --accl: #eaf3de;
+  --acct: #27500a;
+  --accb: #c0dd97;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  background: var(--p);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
