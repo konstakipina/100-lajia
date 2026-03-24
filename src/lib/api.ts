@@ -5,6 +5,8 @@ import type {
   TeamWithMembers,
   Standings,
   CurrentUser,
+  Profile,
+  Team,
 } from "@/types";
 
 const FUNCTIONS_URL = process.env.NEXT_PUBLIC_SUPABASE_FUNCTIONS_URL!;
@@ -108,6 +110,43 @@ export async function listTeams(): Promise<TeamWithMembers[]> {
   return callFunction<TeamWithMembers[]>("teams");
 }
 
+export async function createTeam(data: {
+  name: string;
+  initials: string;
+  color_bg: string;
+  color_fg: string;
+}): Promise<Team> {
+  return callFunction<Team>("teams", { method: "POST", body: data });
+}
+
+export async function updateTeam(
+  id: string,
+  data: Partial<Pick<Team, "name" | "initials" | "color_bg" | "color_fg">>
+): Promise<Team> {
+  return callFunction<Team>("teams", { method: "PATCH", body: { id, ...data } });
+}
+
+export async function deleteTeam(id: string): Promise<void> {
+  await callFunction("teams", { method: "DELETE", body: { id } });
+}
+
+export async function assignMember(
+  team_id: string,
+  user_id: string
+): Promise<void> {
+  await callFunction("teams", {
+    method: "PATCH",
+    body: { action: "assign-member", team_id, user_id },
+  });
+}
+
+export async function removeMember(user_id: string): Promise<void> {
+  await callFunction("teams", {
+    method: "PATCH",
+    body: { action: "remove-member", user_id },
+  });
+}
+
 // ── Standings ──
 
 export async function getStandings(): Promise<Standings> {
@@ -118,4 +157,8 @@ export async function getStandings(): Promise<Standings> {
 
 export async function getMe(): Promise<CurrentUser> {
   return callFunction<CurrentUser>("profiles", { params: { scope: "me" } });
+}
+
+export async function listProfiles(): Promise<Profile[]> {
+  return callFunction<Profile[]>("profiles", { params: { scope: "all" } });
 }

@@ -1,18 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import TopBar from "@/components/TopBar";
 import BottomNav from "@/components/BottomNav";
 import LeaderboardRow from "@/components/LeaderboardRow";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import ErrorMessage from "@/components/ErrorMessage";
 import * as api from "@/lib/api";
 import type { Standings } from "@/types";
 
 export default function StandingsPage() {
   const [standings, setStandings] = useState<Standings | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await api.getStandings();
+      setStandings(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    api.getStandings().then(setStandings);
-  }, []);
+    loadData();
+  }, [loadData]);
 
   const today = new Date().toLocaleDateString("fi-FI", {
     weekday: "long",
@@ -43,7 +60,9 @@ export default function StandingsPage() {
           flex: 1,
         }}
       >
-        {standings && (
+        {loading && <LoadingIndicator />}
+        {error && <ErrorMessage message={error} onRetry={loadData} />}
+        {!loading && !error && standings && (
           <>
             <div>
               <div style={sectionHead}>Joukkueet</div>

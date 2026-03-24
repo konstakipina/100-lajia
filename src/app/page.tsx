@@ -8,6 +8,8 @@ import SpeciesSearch from "@/components/SpeciesSearch";
 import SelectedSpeciesCard from "@/components/SelectedSpeciesCard";
 import SightingForm from "@/components/SightingForm";
 import FeedItem from "@/components/FeedItem";
+import LoadingIndicator from "@/components/LoadingIndicator";
+import ErrorMessage from "@/components/ErrorMessage";
 import * as api from "@/lib/api";
 import type { Species, SightingDisplay, CurrentUser } from "@/types";
 
@@ -19,22 +21,31 @@ export default function OmatHavainnotPage() {
   const [userSpeciesIds, setUserSpeciesIds] = useState<Set<string>>(new Set());
   const [notif, setNotif] = useState({ visible: false, message: "", sub: "" });
   const [formKey, setFormKey] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function init() {
-      // TODO: redirect to /login if not authenticated
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
       const me = await api.getMe();
       setUser(me);
       const species = await api.listSpecies();
       setSpeciesList(species);
       const sightings = await api.listSightings({ user_id: me.profile.id });
       setMySightings(sightings);
-      // Build set of species IDs this user has already seen
       const seen = new Set(sightings.map((s) => s.species_id));
       setUserSpeciesIds(seen);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
-    init();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const handleSelect = useCallback((species: Species) => {
     setSelected(species);
@@ -90,55 +101,103 @@ export default function OmatHavainnotPage() {
         title="Omat havainnot"
         meta={`${teamName} · ${todayStr}`}
       />
-      <div
-        style={{
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: "18px",
-          flex: 1,
-        }}
-      >
-        <SpeciesSearch
-          key={formKey}
-          species={speciesList}
-          onSelect={handleSelect}
-        />
-
-        {selected && (
-          <>
-            <SelectedSpeciesCard
-              species={selected}
-              isNew={!userSpeciesIds.has(selected.id)}
-            />
-            <SightingForm
-              teammates={user ? [user.profile, ...user.teammates] : []}
-              currentUserId={user?.profile.id ?? ""}
-              onSave={handleSave}
-            />
-          </>
-        )}
-
-        {mySightings.length > 0 && (
-          <div>
+      {loading && <LoadingIndicator />}
+      {error && <ErrorMessage message={error} onRetry={loadData} />}
+      {!loading && !error && (user && !user.team ? (
+        <div
+          style={{
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "18px",
+            flex: 1,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <div
+            style={{
+              background: "var(--card)",
+              border: "0.5px solid var(--border)",
+              borderRadius: "10px",
+              padding: "24px",
+              textAlign: "center",
+              maxWidth: "320px",
+            }}
+          >
             <div
               style={{
-                fontSize: "10px",
-                fontWeight: 600,
-                letterSpacing: ".07em",
-                textTransform: "uppercase",
-                color: "var(--inkl)",
-                paddingBottom: "8px",
+                fontFamily: "'Caveat', cursive",
+                fontSize: "22px",
+                color: "var(--ink)",
+                marginBottom: "8px",
               }}
             >
-              {mySightings.length} havaintoa · {uniqueCount} lajia
+              Ei joukkuetta vielä
             </div>
-            {mySightings.map((s, i) => (
-              <FeedItem key={s.id} sighting={s} index={i} />
-            ))}
+            <div
+              style={{
+                fontSize: "13px",
+                color: "var(--inkm)",
+                lineHeight: 1.6,
+              }}
+            >
+              Sinut ei ole vielä liitetty joukkueeseen. Ota yhteyttä
+              järjestäjään, niin pääset kirjaamaan havaintoja.
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            padding: "20px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "18px",
+            flex: 1,
+          }}
+        >
+          <SpeciesSearch
+            key={formKey}
+            species={speciesList}
+            onSelect={handleSelect}
+          />
+
+          {selected && (
+            <>
+              <SelectedSpeciesCard
+                species={selected}
+                isNew={!userSpeciesIds.has(selected.id)}
+              />
+              <SightingForm
+                teammates={user ? [user.profile, ...user.teammates] : []}
+                currentUserId={user?.profile.id ?? ""}
+                onSave={handleSave}
+              />
+            </>
+          )}
+
+          {mySightings.length > 0 && (
+            <div>
+              <div
+                style={{
+                  fontSize: "10px",
+                  fontWeight: 600,
+                  letterSpacing: ".07em",
+                  textTransform: "uppercase",
+                  color: "var(--inkl)",
+                  paddingBottom: "8px",
+                }}
+              >
+                {mySightings.length} havaintoa · {uniqueCount} lajia
+              </div>
+              {mySightings.map((s, i) => (
+                <FeedItem key={s.id} sighting={s} index={i} />
+              ))}
+            </div>
+          )}
+        </div>
+      ))}
       <BottomNav />
     </div>
   );
